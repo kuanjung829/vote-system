@@ -91,3 +91,51 @@ def vote(poll_id: str, vote_data: VoteData, request: Request, response: Response
     response.set_cookie(key="guest_token", value=new_token, httponly=True, samesite="lax", max_age=31536000)
 
     return {"message": "投票成功！"}
+# 1. 請在檔案最上方的 Pydantic 模型區塊，補上這個模型：
+class CommentCreate(BaseModel):
+    content: str
+
+# 2. 將以下兩個 API 貼到 public.py 的最下方：
+
+# ==========================================
+# 3. 取得所有留言主題與內容 API
+# ==========================================
+@router.get("/topics")
+def get_active_topics():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # 撈取開放中的主題
+    cursor.execute("SELECT id, title, created_at FROM Topics WHERE is_active = 1 ORDER BY created_at DESC")
+    topics = [dict(row) for row in cursor.fetchall()]
+    
+    # 把屬於該主題的留言全部撈出來，按時間順序排列
+    for topic in topics:
+        cursor.execute("SELECT id, content, created_at FROM Comments WHERE topic_id = ? ORDER BY created_at ASC", (topic["id"],))
+        topic["comments"] = [dict(row) for row in cursor.fetchall()]
+        
+    conn.close()
+    return topics
+
+# ==========================================
+# 4. 新增匿名留言 API
+# ==========================================
+@router.post("/topics/{topic_id}/comments")
+def add_comment(topic_id: str, comment_data: CommentCreate):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # 檢查主題是否存在且開放
+    cursor.execute("SELECT id FROM Topics WHERE id = ? AND is_active = 1", (topic_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="找不到此留言主題或已關閉")
+
+    comment_id = str(uuid.uuid4())
+    cursor.execute("INSERT INTO Comments (id, topic_id, content) VALUES (?, ?, ?)",
+                   (comment_id, topic_id, comment_data.content))
+    
+    conn.commit()
+    conn.close()
+    return {"message": "留言發布成功！"}

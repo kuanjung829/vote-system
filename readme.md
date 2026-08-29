@@ -13,7 +13,9 @@
 * **匿名留言**：可在指定的留言板主題下自由發表看法。
 
 ### 👑 管理員 (Manager - 後台)
-* **JWT 安全登入**：透過帳號密碼登入後，獲取具備時效性的 Manager JWT Token，保護所有後台 API 路由。
+* **JWT 安全認證**：透過帳號密碼登入後，獲取具備時效性的 Manager JWT Token (HTTP-only Cookie)，保護所有後台 API 路由。
+* **多重管理員機制**：創始管理員登入後，可在控制面板中建立其他管理員帳號。
+* **安全登出機制**：完整的 Token 銷毀機制，確保帳號切換與登出的資訊安全。
 * **投票專案管理**：
   * 建立新的投票項目，並自訂多個投票選項。
   * 隨時將投票項目切換為「關閉」，停止接受新選票。
@@ -28,8 +30,8 @@
 
 * **後端框架**：Python, FastAPI, Uvicorn
 * **資料庫**：SQLite (關聯式資料庫設計，適合處理一對多關聯)
-* **認證機制**：JWT (JSON Web Token), PyJWT, HTTP-only Cookies
-* **前端介面**：原生 HTML5, CSS3, Vanilla JavaScript, Fetch API
+* **認證機制**：JWT (JSON Web Token), PyJWT, HTTP-only Cookies, SHA-256 密碼雜湊
+* **前端介面**：原生 HTML5, CSS3, Vanilla JavaScript, Fetch API, LocalStorage
 
 ---
 
@@ -63,17 +65,18 @@
 
 ## 🚀 開發里程碑 (Roadmap)
 
-- [ ] **Phase 1: 基礎建設與資料庫**
-  - [ ] 初始化 FastAPI 專案結構 (Routers 模組化)。
-  - [ ] 建立 SQLite 資料庫連線與創建 6 張核心資料表。
-- [ ] **Phase 2: JWT 認證與管理員 API**
-  - [ ] 實作 JWT 簽發與解析機制 (Dependency Injection)。
-  - [ ] 實作管理員登入 API (回傳 JWT Cookie)。
-  - [ ] 實作後台 CRUD API (新增投票/選項、新增主題、刪除留言)。
-- [ ] **Phase 3: 匿名使用者 API**
-  - [ ] 實作前台讀取 API (取得開放中的投票與留言)。
-  - [ ] 實作投票 API (包含 Guest Token 簽發與防重複投票邏輯)。
-  - [ ] 實作新增留言 API。
-- [ ] **Phase 4: 前端介面串接**
-  - [ ] 實作 `index.html` (前台投票與留言介面)。
-  - [ ] 實作 `admin.html` (後台管理介面)。
+- [x] **Phase 1: 基礎建設與資料庫**
+  - [x] 初始化 FastAPI 專案結構 (Routers 模組化)。
+  - [x] 建立 SQLite 資料庫連線與創建 6 張核心資料表 (具備 Cascade 連鎖刪除)。
+- [x] **Phase 2: JWT 認證與管理員 API**
+  - [x] 實作 JWT 簽發與解析機制 (Dependency Injection)。
+  - [x] 實作管理員登入/登出 API，與新增管理員帳號功能。
+  - [x] 實作後台 CRUD API (新增投票/選項、新增主題、刪除留言)。
+- [x] **Phase 3: 匿名使用者 API**
+  - [x] 實作前台讀取 API (取得開放中的投票與留言)。
+  - [x] 實作投票 API (包含 Guest Token 簽發與防重複投票邏輯)。
+  - [x] 實作新增留言 API。
+- [x] **Phase 4: 前端介面串接與 UI 設計**
+  - [x] 實作 `index.html` (前台投票與留言介面)。
+  - [x] 實作 `admin.html` (後台指揮官管理介面)。
+  - [x] 實作前後端分離的跨 Port (CORS) 串接與 Cookie 傳遞。

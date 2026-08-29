@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統後台管理</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container { width: 100%; max-width: 800px; }
+
+        #loginSection {
+            background: #34495e; padding: 40px; border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); text-align: center; margin-top: 50px;
+        }
+        #loginSection input {
+            width: 80%; padding: 12px; margin-bottom: 15px; border: none; border-radius: 6px; font-size: 16px;
+        }
+        
+        #dashboardSection { display: none; }
+        
+        .header { 
+            display: flex; justify-content: center; align-items: center; 
+            border-bottom: 2px solid #34495e; padding-bottom: 15px; margin-bottom: 20px; 
+            position: relative; margin-top: 30px; 
+        }
+        .header h1 { margin: 0; color: #f1c40f; }
+        
+        .header-right { 
+            position: absolute; right: 0; display: flex; align-items: center; gap: 15px; 
+        }
+
+        .card { background: #34495e; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card h3 { margin-top: 0; color: #1abc9c; border-bottom: 1px dashed #7f8c8d; padding-bottom: 10px; }
+
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #bdc3c7; }
+        
+        /* 👉 更新：讓 dashboard 裡面的密碼框也套用一致的樣式 */
+        input[type="text"], input[type="password"].dashboard-input { 
+            width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #7f8c8d; 
+            border-radius: 6px; background: #2c3e50; color: white; box-sizing: border-box; 
+        }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-success { background: #2ecc71; color: white; width: 100%; font-size: 16px; }
+        .btn-success:hover { background: #27ae60; }
+        .btn-danger { background: #e74c3c; color: white; padding: 6px 12px; font-size: 12px; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-warning { background: #f39c12; color: white; padding: 6px 12px; font-size: 12px; }
+
+        .admin-list-item { background: #2c3e50; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #3498db; }
+        .admin-list-item.closed { border-left-color: #95a5a6; opacity: 0.7; }
+        
+        .comment-item { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; padding: 10px; border-radius: 6px; margin-bottom: 8px; }
+        
+        .nav-link {
+            position: absolute; top: 20px; left: 20px; text-decoration: none; color: #ecf0f1;
+            font-weight: bold; background: #34495e; padding: 10px 15px; border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: 0.2s; border: 1px solid #2c3e50;
+        }
+        .nav-link:hover { background: #2c3e50; color: #3498db; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    
+    <a href="index.html" class="nav-link">🏠 返回匿名版</a>
+
+    <div class="container">
+        
+        <!-- 🔐 登入區塊 -->
+        <div id="loginSection">
+            <h2 style="color: #1abc9c;">🛡️ 系統最高權限後台</h2>
+            <p style="color: #bdc3c7; margin-bottom: 25px;">請輸入管理員帳號密碼</p>
+            <input type="text" id="accInput" placeholder="帳號"><br>
+            <input type="password" id="pwdInput" placeholder="密碼"><br>
+            <button class="btn btn-primary" onclick="login()" style="width: 80%; padding: 12px; font-size: 16px;">登入</button>
+            <p id="loginMsg" style="color: #e74c3c; font-weight: bold; margin-top: 15px;"></p>
+        </div>
+
+        <!-- 🎛️ 控制面板區塊 (登入後顯示) -->
+        <div id="dashboardSection">
+            <div class="header">
+                <h1>👑 管理員控制面板</h1>
+                <div class="header-right">
+                    <span id="welcomeMsg" style="color: #bdc3c7;">歡迎回來！</span>
+                    <button class="btn btn-danger" onclick="logout()">登出</button>
+                </div>
+            </div>
+
+            <!-- 👉 新增：建立管理員帳號區塊 -->
+            <div class="card">
+                <h3>👥 建立新管理員帳號</h3>
+                <label>新管理員帳號</label>
+                <input type="text" id="newAdminAcc" placeholder="輸入要建立的帳號名稱">
+                
+                <label>新管理員密碼</label>
+                <input type="password" id="newAdminPwd" class="dashboard-input" placeholder="輸入密碼">
+                
+                <button class="btn btn-primary" onclick="createAdminAccount()">建立帳號</button>
+            </div>
+
+            <div class="card">
+                <h3>➕ 建立新投票</h3>
+                <label>投票標題</label>
+                <input type="text" id="pollTitle" placeholder="例如：下次聚餐想吃什麼？">
+                
+                <label>投票選項 (至少兩個)</label>
+                <div id="optionsContainer">
+                    <input type="text" class="opt-input" placeholder="選項 1">
+                    <input type="text" class="opt-input" placeholder="選項 2">
+                </div>
+                <button class="btn btn-primary" onclick="addOptionInput()" style="margin-bottom: 15px;">+ 新增選項欄位</button>
+                <button class="btn btn-success" onclick="createPoll()">發布投票</button>
+            </div>
+
+            <div class="card">
+                <h3>💬 建立新留言主題</h3>
+                <label>主題名稱</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="topicTitle" placeholder="例如：對這次考試難度的看法？" style="margin-bottom: 0;">
+                    <button class="btn btn-primary" onclick="createTopic()">建立主題</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📋 投票專案管理</h3>
+                <div id="adminPollsList"></div>
+            </div>
+
+            <div class="card">
+                <h3>🧹 留言板巡邏 (刪除不當留言)</h3>
+                <div id="adminTopicsList"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_ADMIN = 'http://127.0.0.1:8000/api/admin';
+        const API_PUBLIC = 'http://127.0.0.1:8000/api/public'; 
+
+        window.onload = () => {
+            checkAuth();
+        };
+
+        async function login() {
+            const acc = document.getElementById('accInput').value;
+            const pwd = document.getElementById('pwdInput').value;
+            const msg = document.getElementById('loginMsg');
+
+            if(!acc || !pwd) return msg.innerText = "請填寫完整帳號密碼！";
+            msg.innerText = "驗證中...";
+
+            try {
+                const res = await fetch(`${API_ADMIN}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ account: acc, password: pwd })
+                });
+
+                if (res.ok) {
+                    localStorage.setItem('adminAccount', acc); 
+                    msg.style.color = "#2ecc71";
+                    msg.innerText = "登入成功！載入面板中...";
+                    setTimeout(checkAuth, 800); 
+                } else {
+                    const data = await res.json();
+                    msg.innerText = data.detail || "帳號或密碼錯誤";
+                }
+            } catch (err) {
+                msg.innerText = "網路連線發生問題";
+            }
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${API_ADMIN}/polls`, { credentials: 'include' });
+                if (res.ok) {
+                    const accountName = localStorage.getItem('adminAccount') || '管理員';
+                    document.getElementById('welcomeMsg').innerText = `歡迎回來，${accountName}！`;
+
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('dashboardSection').style.display = 'block';
+                    loadAdminData(); 
+                } else {
+                    document.getElementById('loginSection').style.display = 'block';
+                    document.getElementById('dashboardSection').style.display = 'none';
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function logout() {
+            if (!confirm("確定要登出管理員帳號嗎？")) return;
+            try {
+                const res = await fetch(`${API_ADMIN}/logout`, { method: 'POST', credentials: 'include' });
+                if (res.ok) {
+                    localStorage.removeItem('adminAccount'); 
+                    document.getElementById('accInput').value = ''; 
+                    document.getElementById('pwdInput').value = '';
+                    document.getElementById('loginMsg').innerText = '';
+                    checkAuth(); 
+                }
+            } catch (err) { console.error("登出失敗", err); }
+        }
+
+        // 👉 新增：建立管理員的功能邏輯
+        async function createAdminAccount() {
+            const acc = document.getElementById('newAdminAcc').value.trim();
+            const pwd = document.getElementById('newAdminPwd').value.trim();
+
+            if (!acc || !pwd) return alert('請填寫完整的新帳號與密碼！');
+
+            try {
+                const res = await fetch(`${API_ADMIN}/accounts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ account: acc, password: pwd })
+                });
+
+                if (res.ok) {
+                    alert(`成功新增管理員帳號：${acc} 🎉\n該帳號現在已經可以登入系統了！`);
+                    document.getElementById('newAdminAcc').value = ''; // 清空輸入框
+                    document.getElementById('newAdminPwd').value = '';
+                } else {
+                    const data = await res.json();
+                    alert(`新增失敗：${data.detail} 🚫`);
+                }
+            } catch (err) {
+                console.error("新增管理員發生錯誤", err);
+                alert("網路連線發生問題");
+            }
+        }
+
+        function loadAdminData() {
+            fetchAdminPolls();
+            fetchAdminTopics();
+        }
+
+        function addOptionInput() {
+            const container = document.getElementById('optionsContainer');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'opt-input';
+            input.placeholder = `選項 ${container.children.length + 1}`;
+            container.appendChild(input);
+        }
+
+        async function createPoll() {
+            const title = document.getElementById('pollTitle').value;
+            const options = Array.from(document.querySelectorAll('.opt-input'))
+                                 .map(input => input.value.trim())
+                                 .filter(val => val !== '');
+            
+            if (!title) return alert('請填寫投票標題');
+            if (options.length < 2) return alert('至少需要填寫兩個選項喔！');
+
+            const res = await fetch(`${API_ADMIN}/polls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ title, options })
+            });
+
+            if (res.ok) {
+                alert('投票建立成功！');
+                document.getElementById('pollTitle').value = '';
+                document.querySelectorAll('.opt-input').forEach(input => input.value = '');
+                fetchAdminPolls();
+            }
+        }
+
+        async function fetchAdminPolls() {
+            const res = await fetch(`${API_ADMIN}/polls`, { credentials: 'include' });
+            const polls = await res.json();
+            const container = document.getElementById('adminPollsList');
+            container.innerHTML = '';
+
+            polls.forEach(poll => {
+                const totalVotes = poll.options.reduce((sum, opt) => sum + opt.vote_count, 0);
+                const statusClass = poll.is_active ? '' : 'closed';
+                const statusText = poll.is_active ? '🟢 開放中' : '🔴 已關閉';
+                const actionBtn = poll.is_active 
+                    ? `<button class="btn btn-warning" onclick="closePoll('${poll.id}')">關閉投票</button>` 
+                    : '';
+
+                container.innerHTML += `
+                    <div class="admin-list-item ${statusClass}">
+                        <div>
+                            <h4 style="margin:0 0 5px 0;">${poll.title} <span style="font-size:12px; color:#bdc3c7;">(${statusText})</span></h4>
+                            <div style="font-size:13px; color:#95a5a6;">總票數：${totalVotes} 票</div>
+                        </div>
+                        <div>${actionBtn}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function closePoll(id) {
+            if (!confirm('確定要關閉這個投票嗎？關閉後前台將無法再投票。')) return;
+            const res = await fetch(`${API_ADMIN}/polls/${id}/close`, {
+                method: 'PUT', credentials: 'include'
+            });
+            if (res.ok) fetchAdminPolls();
+        }
+
+        async function createTopic() {
+            const title = document.getElementById('topicTitle').value;
+            if (!title) return alert('請填寫主題名稱');
+
+            const res = await fetch(`${API_ADMIN}/topics`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ title })
+            });
+
+            if (res.ok) {
+                alert('留言主題建立成功！');
+                document.getElementById('topicTitle').value = '';
+                fetchAdminTopics();
+            }
+        }
+
+        async function fetchAdminTopics() {
+            const res = await fetch(`${API_PUBLIC}/topics`);
+            const topics = await res.json();
+            const container = document.getElementById('adminTopicsList');
+            container.innerHTML = '';
+
+            topics.forEach(topic => {
+                let commentsHtml = '';
+                topic.comments.forEach(comment => {
+                    commentsHtml += `
+                        <div class="comment-item">
+                            <div><span style="color:#7f8c8d; font-size:12px;">${comment.created_at.split('.')[0]}</span><br>${comment.content}</div>
+                            <button class="btn btn-danger" onclick="deleteComment('${comment.id}')">刪除</button>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML += `
+                    <div style="background: #2c3e50; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #34495e;">
+                        <h4 style="margin: 0 0 10px 0; color: #f39c12;">${topic.title}</h4>
+                        ${commentsHtml || '<div style="color:#7f8c8d; font-size:13px;">目前無留言</div>'}
+                    </div>
+                `;
+            });
+        }
+
+        async function deleteComment(id) {
+            if (!confirm('確定要強制刪除這則留言嗎？')) return;
+            const res = await fetch(`${API_ADMIN}/comments/${id}`, {
+                method: 'DELETE', credentials: 'include'
+            });
+            if (res.ok) fetchAdminTopics(); 
+        }
+    </script>
+</body>
+</html>

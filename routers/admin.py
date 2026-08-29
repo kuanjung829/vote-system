@@ -9,6 +9,10 @@ from auth import create_jwt_token, verify_admin
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 DB_FILE = "system.db"
 
+# 讓前端能傳送新帳號與密碼過來
+class AdminCreate(BaseModel):
+    account: str
+    password: str
 # --- Pydantic 接收資料模型 ---
 class LoginData(BaseModel):
     account: str
@@ -121,3 +125,75 @@ def close_poll(poll_id: str):
     conn.commit()
     conn.close()
     return {"message": "投票已成功關閉"}
+# 1. 請在檔案最上方的 Pydantic 模型區塊，補上這個模型：
+class TopicCreate(BaseModel):
+    title: str
+
+# 2. 將以下兩個 API 貼到 admin.py 的最下方：
+
+# ==========================================
+# 5. 新增留言主題 API (受 JWT 保護)
+# ==========================================
+@router.post("/topics", dependencies=[Depends(verify_admin)])
+def create_topic(topic_data: TopicCreate):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    topic_id = str(uuid.uuid4())
+    cursor.execute("INSERT INTO Topics (id, title, is_active) VALUES (?, ?, 1)", 
+                   (topic_id, topic_data.title))
+    
+    conn.commit()
+    conn.close()
+    return {"message": "留言主題建立成功", "topic_id": topic_id}
+
+# ==========================================
+# 6. 刪除不當留言 API (受 JWT 保護)
+# ==========================================
+@router.delete("/comments/{comment_id}", dependencies=[Depends(verify_admin)])
+def delete_comment(comment_id: str):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM Comments WHERE id = ?", (comment_id,))
+    
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="找不到該則留言")
+        
+    conn.commit()
+    conn.close()
+    return {"message": "留言已成功刪除"}
+# ==========================================
+# 7. 管理員登出 API
+# ==========================================
+@router.post("/logout")
+def admin_logout(response: Response):
+    # 將 admin_token 這個 Cookie 的過期時間設定為過去，藉此讓瀏覽器刪除它
+    response.delete_cookie(key="admin_token", httponly=True, samesite="lax")
+    return {"message": "已成功登出"}
+# ==========================================
+# 8. 新增管理員帳號 API (受 JWT 保護)
+# ==========================================
+@router.post("/accounts", dependencies=[Depends(verify_admin)])
+def create_admin_account(data: AdminCreate):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # 檢查帳號是否已經被註冊過
+    cursor.execute("SELECT id FROM Admins WHERE account = ?", (data.account,))
+    if cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="這個帳號已經被註冊過了喔！")
+    
+    # 產生新 UUID 並加密密碼
+    admin_id = str(uuid.uuid4())
+    input_hash = hash_password(data.password)
+    
+    # 寫入資料庫
+    cursor.execute("INSERT INTO Admins (id, account, password_hash) VALUES (?, ?, ?)", 
+                   (admin_id, data.account, input_hash))
+    
+    conn.commit()
+    conn.close()
+    return {"message": f"成功新增管理員帳號：{data.account}"}

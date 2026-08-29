@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公眾意見調查與討論區</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 { color: #2c3e50; }
+        .header p { color: #7f8c8d; }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            gap: 20px;
+        }
+
+        /* 卡片共用樣式 */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #34495e;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        /* 投票區樣式 */
+        .poll-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: 0.2s;
+        }
+
+        .poll-option:hover { background: #e9ecef; }
+
+        .btn-vote {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-vote:hover { background: #2980b9; }
+        
+        .vote-count { font-size: 14px; color: #7f8c8d; font-weight: bold; }
+
+        /* 留言區樣式 */
+        .comment-box {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #1abc9c;
+        }
+
+        .comment-date { font-size: 12px; color: #95a5a6; margin-bottom: 5px; }
+        
+        .comment-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .comment-input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .btn-comment {
+            background: #1abc9c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-comment:hover { background: #16a085; }
+    
+    /* 左上角導覽按鈕 */
+        .nav-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #3498db;
+            font-weight: bold;
+            background: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: 0.2s;
+            border: 1px solid #ecf0f1;
+        }
+        .nav-link:hover {
+            background: #f8f9fa;
+            color: #2980b9;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🗳️ 公眾意見調查與討論區</h1>
+        <p>匿名參與，每人限投一票。你的聲音很重要！</p>
+    </div>
+
+    <div class="container">
+        <!-- 投票項目將會渲染在這裡 -->
+        <div id="pollsContainer"></div>
+        
+        <!-- 留言板將會渲染在這裡 -->
+        <div id="topicsContainer"></div>
+    </div>
+
+    <script>
+        // 設定後端 API 的基礎網址 (明確指定 Port 8000)
+        const API_BASE = 'http://127.0.0.1:8000/api/public';
+
+        window.onload = () => {
+            loadPolls();
+            loadTopics();
+        };
+
+        // ==========================================
+        // 1. 讀取並渲染投票項目
+        // ==========================================
+        async function loadPolls() {
+            try {
+                const res = await fetch(`${API_BASE}/polls`);
+                const polls = await res.json();
+                
+                const container = document.getElementById('pollsContainer');
+                container.innerHTML = '';
+
+                polls.forEach(poll => {
+                    let optionsHtml = '';
+                    
+                    poll.options.forEach(opt => {
+                        optionsHtml += `
+                            <div class="poll-option">
+                                <span>${opt.option_text}</span>
+                                <div>
+                                    <span class="vote-count">${opt.vote_count} 票</span>
+                                    <button class="btn-vote" onclick="submitVote('${poll.id}', '${opt.id}')">投票</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML += `
+                        <div class="card">
+                            <h3 class="card-title">📊 ${poll.title}</h3>
+                            ${optionsHtml}
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('讀取投票失敗', error);
+            }
+        }
+
+        // ==========================================
+        // 2. 送出選票 (含防作弊機制)
+        // ==========================================
+        async function submitVote(pollId, optionId) {
+            try {
+                // 👉 跨 Port 連線，必須加上 credentials: 'include' 才能帶上 JWT Cookie
+                const res = await fetch(`${API_BASE}/polls/${pollId}/vote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ option_id: optionId })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('投票成功！感謝你的參與 🎉');
+                    loadPolls(); // 重新讀取票數
+                } else {
+                    // 如果出現 403，代表這個 JWT Token 已經投過票了
+                    alert('登愣：' + data.detail + ' 🚫');
+                }
+            } catch (error) {
+                console.error('投票發生錯誤', error);
+                alert('網路連線發生問題 😵‍💫');
+            }
+        }
+
+        // ==========================================
+        // 3. 讀取並渲染留言板
+        // ==========================================
+        async function loadTopics() {
+            try {
+                const res = await fetch(`${API_BASE}/topics`);
+                const topics = await res.json();
+                
+                const container = document.getElementById('topicsContainer');
+                container.innerHTML = '';
+
+                topics.forEach(topic => {
+                    let commentsHtml = '';
+                    
+                    topic.comments.forEach(comment => {
+                        // 格式化時間 (去掉後面的毫秒)
+                        const dateStr = comment.created_at.split('.')[0];
+                        commentsHtml += `
+                            <div class="comment-box">
+                                <div class="comment-date">🕒 ${dateStr}</div>
+                                <div>${comment.content}</div>
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML += `
+                        <div class="card">
+                            <h3 class="card-title">💬 討論區：${topic.title}</h3>
+                            <div id="comments-list-${topic.id}">
+                                ${commentsHtml || '<p style="color:#95a5a6; font-size:14px;">目前還沒有留言，來搶頭香吧！</p>'}
+                            </div>
+                            <div class="comment-input-group">
+                                <input type="text" id="input-${topic.id}" placeholder="匿名留言..." maxlength="100">
+                                <button class="btn-comment" onclick="submitComment('${topic.id}')">送出</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('讀取留言板失敗', error);
+            }
+        }
+
+        // ==========================================
+        // 4. 送出匿名留言
+        // ==========================================
+        async function submitComment(topicId) {
+            const inputField = document.getElementById(`input-${topicId}`);
+            const content = inputField.value.trim();
+
+            if (!content) {
+                alert('留言不能是空的喔！');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/topics/${topicId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+
+                if (res.ok) {
+                    inputField.value = ''; // 清空輸入框
+                    loadTopics(); // 重新讀取留言列表
+                } else {
+                    const data = await res.json();
+                    alert('發生錯誤：' + data.detail);
+                }
+            } catch (error) {
+                console.error('送出留言發生錯誤', error);
+            }
+        }
+    </script>
+<a href="admin.html" class="nav-link">⚙️ 前往管理員面板</a>
+</body>
+</html>
