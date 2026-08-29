@@ -98,82 +98,98 @@
  ┣ 📜 auth.py                  # JWT (JSON Web Token) 簽發與驗證核心邏輯
  ┣ 📜 system.db                # SQLite 資料庫實體檔案 (執行 database.py 後自動產生)
  ┗ 📜 README.md                # 專案說明文件
+```
 
-🚀 本機執行指令 (How to Run)
+---
+
+## 🚀 本機執行指令 (How to Run)
+
 請確認你的電腦已安裝 Python 3.7+，並跟著以下步驟啟動系統：
 
-1. 安裝必要套件
+### 1. 安裝必要套件
 打開終端機，執行以下指令安裝 FastAPI 網頁框架、Uvicorn 伺服器與 JWT 處理套件：
-
-Bash
+```bash
 pip install fastapi uvicorn pyjwt
-2. 初始化資料庫
-在專案根目錄下執行資料庫建置腳本。執行後會自動產生 system.db 實體檔案與所有關聯資料表：
+```
 
-Bash
+### 2. 初始化資料庫
+在專案根目錄下執行資料庫建置腳本。執行後會自動產生 `system.db` 實體檔案與所有關聯資料表：
+```bash
 python database.py
-3. 啟動 FastAPI 後端伺服器
-啟動後端 API 伺服器，預設會運行於 http://127.0.0.1:8000：
+```
 
-Bash
+### 3. 啟動 FastAPI 後端伺服器
+啟動後端 API 伺服器，預設會運行於 `[http://127.0.0.1:8000](http://127.0.0.1:8000)`：
+```bash
 uvicorn main:app --reload
-(💡 啟動後，你可以前往 http://127.0.0.1:8000/docs 查看由 FastAPI 自動生成的 Swagger UI API 測試介面)
+```
+*(💡 啟動後，你可以前往 `[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)` 查看由 FastAPI 自動生成的 Swagger UI API 測試介面)*
 
-4. 啟動前端網頁 (前後端分離)
-建議在 VS Code 中安裝 Live Server 擴充套件。
+### 4. 啟動前端網頁 (前後端分離)
+1. 建議在 VS Code 中安裝 **Live Server** 擴充套件。
+2. 進入 `frontend` 資料夾，對 `index.html` 或 `admin.html` 點擊右鍵，選擇 **Open with Live Server**。
+3. 前端網頁會運行於 `[http://127.0.0.1:5500](http://127.0.0.1:5500)`，並自動跨 Port 呼叫後端 API。
 
-進入 frontend 資料夾，對 index.html 或 admin.html 點擊右鍵，選擇 Open with Live Server。
+**👑 創始管理員帳號說明：**
+本系統具備「創始管理員自動註冊」機制。當資料庫無管理員帳號時，於 `admin.html` 首次輸入的帳號與密碼將自動註冊為最高權限之創始管理員。
 
-前端網頁會運行於 http://127.0.0.1:5500，並自動跨 Port 呼叫後端 API。
+---
 
-👑 創始管理員帳號說明：
-本系統具備「創始管理員自動註冊」機制。當資料庫無管理員帳號時，於 admin.html 首次輸入的帳號與密碼將自動註冊為最高權限之創始管理員。
+## 📦 API 詳細規格說明
 
-📦 API 詳細規格說明
-Admin Login :
-Desc：管理員登入。驗證成功後，後端會將包含權限的 JWT 寫入瀏覽器的 HTTP-only Cookie 中。若資料庫尚無管理員，首次登入將自動註冊為創始管理員。
+### Admin Login :
 
-Prefix：/api/admin/login (POST)
+* Desc : 管理員登入。驗證成功後，後端會將包含權限的 JWT 寫入瀏覽器的 HTTP-only Cookie 中。
+* Prefix : `/api/admin/login` (POST)
+* data :
 
-data：
-
-JSON
+```json
 {
   "account": "admin",
   "password": "password123"
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "管理員登入成功"
 }
-Create Admin Account :
-Desc：建立新的管理員帳號 (需攜帶有效之管理員 JWT Cookie)。
+```
 
-Prefix：/api/admin/accounts (POST)
+---
 
-data：
+### Create Admin Account :
 
-JSON
+* Desc : 建立新的管理員帳號 (需攜帶有效之管理員 JWT Cookie)。
+* Prefix : `/api/admin/accounts` (POST)
+* data :
+
+```json
 {
   "account": "newAdmin",
   "password": "newPassword"
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "成功新增管理員帳號：newAdmin"
 }
-Create Poll :
-Desc：建立新投票專案與關聯選項 (需攜帶有效之管理員 JWT Cookie)。前端僅需傳送標題與選項字串陣列，id 由後端生成。
+```
 
-Prefix：/api/admin/polls (POST)
+---
 
-data：
+### Create Poll :
 
-JSON
+* Desc : 建立新投票專案與關聯選項 (需攜帶有效之管理員 JWT Cookie)。前端僅需傳送標題與選項字串陣列，id 由後端生成。
+* Prefix : `/api/admin/polls` (POST)
+* data :
+
+```json
 {
   "title": "今天晚餐吃什麼？",
   "options": [
@@ -182,62 +198,80 @@ JSON
     "漢堡王"
   ]
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "投票項目建立成功",
   "poll_id": "c1f6d3a9-4b2a-4f8a-9c3b-1d7e5f2a8b9c"
 }
-Submit Vote :
-Desc：匿名使用者進行投票。首次投票會自動獲得一組帶有 UUID 的 Guest Token Cookie。若該 UUID 已投過此 poll_id，將回傳 403 錯誤防弊。
+```
 
-Prefix：/api/public/polls/{poll_id}/vote (POST)
+---
 
-data：
+### Submit Vote :
 
-JSON
+* Desc : 匿名使用者進行投票。首次投票會自動獲得一組帶有 UUID 的 Guest Token Cookie。若該 UUID 已投過此 `poll_id`，將回傳 403 錯誤防弊。
+* Prefix : `/api/public/polls/{poll_id}/vote` (POST)
+* data :
+
+```json
 {
   "option_id": "e2a4b6c8-1d3f-5a7b-9c1e-3f5a7b9c1e3f"
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "投票成功！"
 }
-Create Topic :
-Desc：管理員建立新的留言板主題 (需攜帶有效之管理員 JWT Cookie)。
+```
 
-Prefix：/api/admin/topics (POST)
+---
 
-data：
+### Create Topic :
 
-JSON
+* Desc : 管理員建立新的留言板主題 (需攜帶有效之管理員 JWT Cookie)。
+* Prefix : `/api/admin/topics` (POST)
+* data :
+
+```json
 {
   "title": "對這次 APCS 考試難度的看法？"
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "留言主題建立成功",
   "topic_id": "a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d"
 }
-Add Comment :
-Desc：匿名使用者於指定的留言板主題下新增留言。
+```
 
-Prefix：/api/public/topics/{topic_id}/comments (POST)
+---
 
-data：
+### Add Comment :
 
-JSON
+* Desc : 匿名使用者於指定的留言板主題下新增留言。
+* Prefix : `/api/public/topics/{topic_id}/comments` (POST)
+* data :
+
+```json
 {
   "content": "我覺得這次題目偏難，尤其是第三題卡了很久！"
 }
-return data：
+```
 
-JSON
+* return data :
+
+```json
 {
   "message": "留言發布成功！"
 }
+```
